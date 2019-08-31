@@ -18,7 +18,7 @@
 #define MAX_MESSAGE_SIZE_RH RH_RF95_MAX_MESSAGE_LEN
 
 const uint8_t heartBeatPin = 5;
-unsigned int heartBeatDelay = 500;
+unsigned int heartBeatDelay = 100;
 
 boolean rmbActive = false;
 boolean connectedToBase = false;
@@ -43,7 +43,7 @@ void setup() {
 		delay(50);
 	}
 
-	Serial.begin(115200);
+	Serial.begin(ROBOT_COM_BAUD);
 	delay(100);
 
 	// manual reset
@@ -89,6 +89,7 @@ void loop()
 		if(rmbActive){
 			Serial.print(COM_START_STRING);
 			bootState = WAITING_ON_BASE;
+			heartBeatDelay = 500;
 		}
 		break;
 	case WAITING_ON_BASE:
@@ -195,5 +196,6 @@ void heartBeat(){
 
 	if(cm - pm >= heartBeatDelay){
 		digitalWrite(heartBeatPin, !digitalRead(heartBeatPin));
+		pm = cm;
 	}
 }
