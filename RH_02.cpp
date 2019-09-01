@@ -27,7 +27,7 @@ enum States {BOOTUP, WAITING_ON_RMB, WAITING_ON_BASE, RUNNING} bootState;
 
 RH_RF95 radio(RFM95_CS, RFM95_INT);
 
-StreamParser parser(&Serial, START_OF_PACKET, END_OF_PACKET, handleSerialCommand);
+//StreamParser parser(&Serial, START_OF_PACKET, END_OF_PACKET, handleSerialCommand);
 
 void setup() {
 	pinMode(RFM95_RST, OUTPUT);
@@ -112,7 +112,8 @@ void loop()
 	}
 
 	listenToRadio(); // handle the radio
-	parser.run();   // listen to serial
+//	parser.run();   // listen to serial
+	handleSerial();
 	heartBeat();   // beat the light
 }
 
@@ -194,6 +195,48 @@ void handleRadioCommand(char* aCommand){
 	}
 }
 
+void handleSerial(){
+
+	static char buffer[100];
+	static boolean receiving = false;
+	static int index = 0;
+
+	if(Serial.available()){
+		char c = Serial.read();
+
+		if(c == START_OF_PACKET){
+			if(Serial.peek() == 0x13){
+				handleRawDataDump();
+				return;
+			}
+			receiving = true;
+			index = 0;
+			buffer[index] = 0;
+		}
+		if (receiving){
+			buffer[index] = c;
+			buffer[++index] = 0;
+			if (index >= 100){
+				index--;
+			}
+			if(c == END_OF_PACKET){
+				receiving = false;
+				handleSerialCommand(buffer);
+			}
+		}
+	}
+}
+
+void handleRawDataDump(){
+	uint8_t buffer[14];
+	buffer[0] = '<';  // we read this already but just peeked the 0x13
+	while(Serial.available() < 13);  // block and catch the whole thing.
+	for(int i=1; i<14; i++){
+		buffer[i] = Serial.read();
+	}
+	radio.send(buffer, 14);
+	radio.waitPacketSent();
+}
 
 void handleSerialCommand(char *aCommand) {
 	// Right now just ship it all over the radio
