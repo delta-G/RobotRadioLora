@@ -58,6 +58,7 @@ void setup() {
 			;
 	}
 	DEBUG("LoRa radio init OK!");
+	digitalWrite(heartBeatPin, HIGH);
 
 	// Defaults after init are 434.0MHz, modulation GFSK_Rb250Fd250, +13dbM
 	if (!radio.setFrequency(RF95_FREQ)) {
@@ -65,6 +66,7 @@ void setup() {
 		while (1)
 			;
 	}
+			digitalWrite(heartBeatPin, LOW);
 	DEBUG("Set Freq to: ");
 	DEBUG(RF95_FREQ);
 
@@ -124,8 +126,6 @@ void sendToRadio(char* p){
 
 
 void listenToRadio() {
-	// If anything is coming in on radio, just ship it out to serial
-	// the serial parsers on either end can handle it however it comes.
 	if (radio.available()) {
 
 		uint8_t buf[MAX_MESSAGE_SIZE_RH];
@@ -151,6 +151,11 @@ void processRadioBuffer(uint8_t* aBuf){
 		char c = aBuf[i];
 
 		if(c == START_OF_PACKET){
+			if(aBuf[i+1] == 0x14 || aBuf[i+1] == 0x0D){
+				controllerDataToASCII(&aBuf[i+1]);
+				i += 15;
+				continue;
+			}
 			receiving = true;
 			index = 0;
 			commandBuffer[0] = 0;
@@ -169,6 +174,17 @@ void processRadioBuffer(uint8_t* aBuf){
 	}
 }
 
+void controllerDataToASCII(uint8_t* aBuf){
+
+	char retBuf[32] = "<X";
+
+	for(int i = 0; i<14; i++){
+		sprintf(&retBuf[2+(2*i)], "%0.2X", aBuf[i]);
+	}
+	retBuf[30] = '>';
+	retBuf[31] = 0;
+	handleRadioCommand(retBuf);
+}
 
 void handleRadioCommand(char* aCommand){
 	// Right now just ship everything to RMB

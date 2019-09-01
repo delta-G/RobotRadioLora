@@ -20,6 +20,8 @@ void handleRadioCommand(char*);
 
 void handleSerialCommand(char*);
 
+void controllerDataToASCII(uint8_t*);
+
 void heartBeat();
 
 #endif /* _RH_02_H_ */
