@@ -7,7 +7,7 @@
 
 #include <RobotSharedDefines.h>
 
-//#include <StreamParser.h>
+#include <StreamParser.h>
 
 
 void setup();
@@ -18,9 +18,9 @@ void listenToRadio();
 void processRadioBuffer(uint8_t*);
 void handleRadioCommand(char*);
 
-void handleSerial();
 void handleSerialCommand(char*);
-void handleRawDataDump();
+
+void handleRawData(char*);
 
 void controllerDataToASCII(uint8_t*);
 
