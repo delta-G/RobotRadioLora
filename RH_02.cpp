@@ -217,17 +217,17 @@ void handleRawData(char *p) {
 
 	int numBytes = p[2];
 
-	if (p[1] == 0x13 && numBytes == 15) {
-		uint8_t newMess[17];
-		memcpy(newMess, p, 14); // get everything but the '>'
+	if (p[1] == 0x13 && numBytes == 16) {
+		uint8_t newMess[18];
+		memcpy(newMess, p, 15); // get everything but the '>'
 		uint8_t snr = (uint8_t) (radio.lastSNR());
 		int rs = radio.lastRssi();
 		uint8_t rssi = (uint8_t) (abs(rs));
-		p[2] = 17;
-		newMess[14] = snr;
-		newMess[15] = rssi;
-		newMess[16] = '>';
-		numBytes = 17;
+		p[2] = 18;
+		newMess[15] = snr;
+		newMess[16] = rssi;
+		newMess[17] = '>';
+		numBytes = 18;
 		radio.send((uint8_t*) newMess, numBytes);
 	} else {
 		radio.send((uint8_t*) p, numBytes);
