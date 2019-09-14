@@ -17,7 +17,7 @@
 
 #define MAX_MESSAGE_SIZE_RH RH_RF95_MAX_MESSAGE_LEN
 
-const uint8_t heartBeatPin = 5;
+const uint8_t heartBeatPin = 6;
 unsigned int heartBeatDelay = 100;
 
 boolean rmbActive = false;
