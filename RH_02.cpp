@@ -213,13 +213,26 @@ void handleRadioCommand(char* aCommand){
 	}
 }
 
-void handleRawData(char* p){
+void handleRawData(char *p) {
 
 	int numBytes = p[2];
 
-	radio.send((uint8_t*)p, numBytes);
+	if (p[1] == 0x13 && numBytes == 15) {
+		uint8_t newMess[17];
+		memcpy(newMess, p, 14); // get everything but the '>'
+		uint8_t snr = (uint8_t) (radio.lastSNR());
+		int rs = radio.lastRssi();
+		uint8_t rssi = (uint8_t) (abs(rs));
+		p[2] = 17;
+		newMess[14] = snr;
+		newMess[15] = rssi;
+		newMess[16] = '>';
+		numBytes = 17;
+		radio.send((uint8_t*) newMess, numBytes);
+	} else {
+		radio.send((uint8_t*) p, numBytes);
+	}
 	radio.waitPacketSent();
-
 }
 
 void handleSerialCommand(char *aCommand) {
