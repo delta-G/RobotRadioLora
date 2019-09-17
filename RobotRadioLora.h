@@ -42,7 +42,8 @@ void handleRadioCommand(char*);
 
 void handleSerialCommand(char*);
 
-void handleRawData(char*);
+void handleRawSerial(char*);
+void handleRawRadio(uint8_t*);
 
 void controllerDataToASCII(uint8_t*);
 

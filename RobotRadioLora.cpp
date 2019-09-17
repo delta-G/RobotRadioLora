@@ -110,7 +110,7 @@ void setup() {
 	}
 
 
-	parser.setRawCallback(handleRawData);
+	parser.setRawCallback(handleRawSerial);
 
 }
 
@@ -186,17 +186,23 @@ void processRadioBuffer(uint8_t* aBuf){
 	for(int i=0; i<MAX_MESSAGE_SIZE_RH; i++){
 		char c = aBuf[i];
 
-		if(c == START_OF_PACKET){
-			if(aBuf[i+1] == 0x14 || aBuf[i+1] == 0x0D){
-				controllerDataToASCII(&aBuf[i+1]);
-				i += 15;
+		if (c == START_OF_PACKET) {
+//			if(aBuf[i+1] == 0x14 || aBuf[i+1] == 0x0D){
+//				controllerDataToASCII(&aBuf[i+1]);
+//				i += 15;
+//				continue;
+//			}
+			if ((aBuf[i + 1] >= 0x11) && (aBuf[i + 1] <= 0x14)) {
+				handleRawRadio(&aBuf[i]);
+				i += (aBuf[i + 2] - 1);
 				continue;
 			}
+
 			receiving = true;
 			index = 0;
 			commandBuffer[0] = 0;
 		}
-		if(receiving){
+		if (receiving) {
 			commandBuffer[index] = c;
 			commandBuffer[++index] = 0;
 			if(index >= 100){
@@ -236,7 +242,14 @@ void handleRadioCommand(char* aCommand){
 	}
 }
 
-void handleRawData(char *p) {
+void handleRawRadio(uint8_t* p){
+	uint8_t numBytes = p[2];
+	for(uint8_t i=0; i<numBytes; i++){
+		Serial.write(p[i]);
+	}
+}
+
+void handleRawSerial(char *p) {
 
 	int numBytes = p[2];
 
