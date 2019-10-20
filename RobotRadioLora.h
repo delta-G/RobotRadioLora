@@ -45,8 +45,6 @@ void handleSerialCommand(char*);
 void handleRawSerial(char*);
 void handleRawRadio(uint8_t*);
 
-void controllerDataToASCII(uint8_t*);
-
 void heartBeat();
 
 #endif /* _RH_02_H_ */

@@ -153,8 +153,6 @@ void loop()
 }
 
 void sendToRadio(char* p){
-//	DEBUG("Sending ");
-//	DEBUG(p);
 	uint8_t len = strlen(p);
 	radio.send((uint8_t*)p, len);
 	radio.waitPacketSent();
@@ -187,11 +185,6 @@ void processRadioBuffer(uint8_t* aBuf){
 		char c = aBuf[i];
 
 		if (c == START_OF_PACKET) {
-//			if(aBuf[i+1] == 0x14 || aBuf[i+1] == 0x0D){
-//				controllerDataToASCII(&aBuf[i+1]);
-//				i += 15;
-//				continue;
-//			}
 			if ((aBuf[i + 1] >= 0x11) && (aBuf[i + 1] <= 0x14)) {
 				handleRawRadio(&aBuf[i]);
 				i += (aBuf[i + 2] - 1);
@@ -216,18 +209,6 @@ void processRadioBuffer(uint8_t* aBuf){
 	}
 }
 
-void controllerDataToASCII(uint8_t* aBuf){
-
-	char retBuf[32] = "<X";
-
-	for(int i = 0; i<14; i++){
-		sprintf(&retBuf[2+(2*i)], "%0.2X", aBuf[i]);
-	}
-	retBuf[30] = '>';
-	retBuf[31] = 0;
-	handleRadioCommand(retBuf);
-}
-
 void handleRadioCommand(char* aCommand){
 	// Right now just ship everything to RMB
 	connectedToBase = true;  //we received a formatted command we must be connected
@@ -242,10 +223,20 @@ void handleRadioCommand(char* aCommand){
 	}
 }
 
-void handleRawRadio(uint8_t* p){
+void handleRawRadio(uint8_t *p) {
 	uint8_t numBytes = p[2];
-	for(uint8_t i=0; i<numBytes; i++){
-		Serial.write(p[i]);
+	//  If properly formatted message
+	if ((numBytes < 100) && (p[numBytes - 1] == '>')) {
+		connectedToBase = true; //we received a formatted raw message we must be connected
+		for (uint8_t i = 0; i < numBytes; i++) {
+			Serial.write(p[i]);
+		}
+		lastCommandTime = millis();
+		//  if we had lost contact
+		if (blackoutReported) {
+			blackoutReported = false;
+			heartBeatDelay = 2000;
+		}
 	}
 }
 
@@ -256,6 +247,7 @@ void handleRawSerial(char *p) {
 	if (p[1] == 0x13 && numBytes == 16) {
 		uint8_t newMess[18];
 		memcpy(newMess, p, 15); // get everything but the '>'
+		// Add on the snr and rssi values and cap with a new '>'
 		uint8_t snr = (uint8_t) (radio.lastSNR());
 		int rs = radio.lastRssi();
 		uint8_t rssi = (uint8_t) (abs(rs));
