@@ -244,18 +244,18 @@ void handleRawSerial(char *p) {
 
 	int numBytes = p[2];
 
-	if (p[1] == 0x13 && numBytes == 16) {
-		uint8_t newMess[18];
-		memcpy(newMess, p, 15); // get everything but the '>'
+	if (p[1] == 0x13 && numBytes == ROBOT_DATA_DUMP_SIZE) {
+		uint8_t newMess[ROBOT_DATA_DUMP_SIZE + 2];
+		memcpy(newMess, p, ROBOT_DATA_DUMP_SIZE - 1); // get everything but the '>'
 		// Add on the snr and rssi values and cap with a new '>'
 		uint8_t snr = (uint8_t) (radio.lastSNR());
 		int rs = radio.lastRssi();
 		uint8_t rssi = (uint8_t) (abs(rs));
-		p[2] = 18;
-		newMess[15] = snr;
-		newMess[16] = rssi;
-		newMess[17] = '>';
-		numBytes = 18;
+		newMess[2] = ROBOT_DATA_DUMP_SIZE + 2;
+		newMess[ROBOT_DATA_DUMP_SIZE - 1] = snr;
+		newMess[ROBOT_DATA_DUMP_SIZE] = rssi;
+		newMess[ROBOT_DATA_DUMP_SIZE + 1] = '>';
+		numBytes = ROBOT_DATA_DUMP_SIZE + 2;
 		radio.send((uint8_t*) newMess, numBytes);
 	} else {
 		radio.send((uint8_t*) p, numBytes);
