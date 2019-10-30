@@ -36,6 +36,7 @@ void setup();
 void loop();
 
 void sendToRadio(char*);
+void sendToRadio(uint8_t*, uint8_t);
 void listenToRadio();
 void processRadioBuffer(uint8_t*);
 void handleRadioCommand(char*);
@@ -44,6 +45,10 @@ void handleSerialCommand(char*);
 
 void handleRawSerial(char*);
 void handleRawRadio(uint8_t*);
+
+void addToHolding(uint8_t*, uint8_t);
+void addToHolding(char*);
+void flush();
 
 void heartBeat();
 

@@ -32,6 +32,8 @@ RobotRadioLora  --  runs on Arduino Nano and handles communication over LoRa
 #endif
 
 
+#define HOLDING_BUFFER_SIZE 248
+
 #define RFM95_CS 10
 #define RFM95_RST 9
 #define RFM95_INT 2
@@ -56,6 +58,15 @@ StreamParser parser(&Serial, START_OF_PACKET, END_OF_PACKET, handleSerialCommand
 uint32_t lastCommandTime;
 uint32_t commandTimeout = 1000;
 boolean blackoutReported = false;
+
+uint32_t lastFlushTime;
+uint32_t maxFlushInterval = 1000;
+
+
+uint8_t holdingBuffer[HOLDING_BUFFER_SIZE];
+uint8_t holdingSize = 0;
+
+boolean flushOnNextRaw = false;
 
 
 void setup() {
@@ -141,6 +152,12 @@ void loop()
 				heartBeatDelay = 200;
 			}
 		}
+		if (holdingSize == 0){
+			lastFlushTime = millis();  // don't start timer if we don't have anything to send.
+		}
+		if (millis() - lastFlushTime >= maxFlushInterval){
+			flush();
+		}
 		break;
 	default:
 		//freak out , we shouldn't be here!
@@ -152,12 +169,35 @@ void loop()
 	heartBeat();   // beat the light
 }
 
+
+void addToHolding(uint8_t* p, uint8_t aSize){
+	if(HOLDING_BUFFER_SIZE - holdingSize < aSize){
+		//  Not enough room so clear the buffer now
+		flush();
+	}
+	memcpy(holdingBuffer, p, aSize);
+	holdingSize += aSize;
+}
+
+void addToHolding(char* p){
+	addToHolding((uint8_t*)p, strlen(p));
+}
+
+
 void sendToRadio(char* p){
-	uint8_t len = strlen(p);
-	radio.send((uint8_t*)p, len);
+	sendToRadio((uint8_t*)p, strlen(p));
+}
+
+void sendToRadio(uint8_t* p, uint8_t aSize){
+	radio.send(p, aSize);
 	radio.waitPacketSent();
 }
 
+void flush(){
+	sendToRadio(holdingBuffer, holdingSize);
+	holdingSize = 0;
+	lastFlushTime = millis();
+}
 
 void listenToRadio() {
 	if (radio.available()) {
@@ -178,6 +218,8 @@ void processRadioBuffer(uint8_t* aBuf){
 	static boolean receiving = false;
 	static char commandBuffer[100];
 	static int index;
+
+	flushOnNextRaw = true;
 
 	// radio.racv doesn't put any null terminator, so we can't use
 	// string functions, have to scroll through and pick stuff out.
@@ -256,20 +298,26 @@ void handleRawSerial(char *p) {
 		newMess[ROBOT_DATA_DUMP_SIZE] = rssi;
 		newMess[ROBOT_DATA_DUMP_SIZE + 1] = '>';
 		numBytes = ROBOT_DATA_DUMP_SIZE + 2;
-		radio.send((uint8_t*) newMess, numBytes);
+		addToHolding((uint8_t*) newMess, numBytes);
 	} else {
-		radio.send((uint8_t*) p, numBytes);
+		addToHolding((uint8_t*) p, numBytes);
 	}
-	radio.waitPacketSent();
+	if(flushOnNextRaw){
+		flushOnNextRaw = false;
+		flush();
+	}
 }
 
 void handleSerialCommand(char *aCommand) {
-	// Right now just ship it all over the radio
+	if (strcmp(aCommand, "<FFF>") == 0){
+		flush();
+		return;
+	}
 	if (strcmp(aCommand, RMB_STARTUP_STRING) == 0) {
 		rmbActive = true;
 	}
 	if (connectedToBase) {
-		sendToRadio(aCommand);
+		addToHolding(aCommand);
 	}
 }
 
