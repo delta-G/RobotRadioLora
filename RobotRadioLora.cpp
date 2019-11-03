@@ -175,7 +175,7 @@ void addToHolding(uint8_t* p, uint8_t aSize){
 		//  Not enough room so clear the buffer now
 		flush();
 	}
-	memcpy(holdingBuffer, p, aSize);
+	memcpy(holdingBuffer + holdingSize, p, aSize);
 	holdingSize += aSize;
 }
 
