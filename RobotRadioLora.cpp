@@ -129,6 +129,7 @@ void loop()
 		if(connectedToBase){
 			Serial.print(COM_CONNECT_STRING);
 			heartBeatDelay = 2000;
+			lastCommandTime = millis();  // reset the command timer
 			bootState = RUNNING;
 		}
 		break;
@@ -228,8 +229,10 @@ void handleRawRadio(uint8_t *p) {
 	//  If properly formatted message
 	if ((numBytes < 100) && (p[numBytes - 1] == '>')) {
 		connectedToBase = true; //we received a formatted raw message we must be connected
-		for (uint8_t i = 0; i < numBytes; i++) {
-			Serial.write(p[i]);
+		if (rmbActive) {
+			for (uint8_t i = 0; i < numBytes; i++) {
+				Serial.write(p[i]);
+			}
 		}
 		lastCommandTime = millis();
 		//  if we had lost contact
