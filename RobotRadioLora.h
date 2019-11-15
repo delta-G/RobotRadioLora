@@ -25,7 +25,7 @@ RobotRadioLora  --  runs on Arduino Nano and handles communication over LoRa
 #include "Arduino.h"
 
 #include <SPI.h>
-#define RH_RF95_MAX_MESSAGE_LEN 80
+//#define RH_RF95_MAX_MESSAGE_LEN 80
 #include <RH_RF95.h>
 
 #include <RobotSharedDefines.h>
