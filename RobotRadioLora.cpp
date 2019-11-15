@@ -23,7 +23,7 @@ RobotRadioLora  --  runs on Arduino Nano and handles communication over LoRa
 
 #include "RobotRadioLora.h"
 
-//#define DEBUG_OUT Serial
+#define DEBUG_OUT Serial
 
 #ifdef DEBUG_OUT
 #define DEBUG(x) DEBUG_OUT.println(x)
@@ -56,11 +56,11 @@ StreamParser parser(&Serial, START_OF_PACKET, END_OF_PACKET, handleSerialCommand
 
 
 uint32_t lastCommandTime;
-uint32_t commandTimeout = 1000;
+uint32_t commandTimeout = 1000000;
 boolean blackoutReported = false;
 
 uint32_t lastFlushTime;
-uint32_t maxFlushInterval = 1000;
+uint32_t maxFlushInterval = 10000;
 
 
 uint8_t holdingBuffer[HOLDING_BUFFER_SIZE];
