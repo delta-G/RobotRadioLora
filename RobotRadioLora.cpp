@@ -23,7 +23,7 @@ RobotRadioLora  --  runs on Arduino Nano and handles communication over LoRa
 
 #include "RobotRadioLora.h"
 
-#define DEBUG_OUT Serial
+//#define DEBUG_OUT Serial
 
 #ifdef DEBUG_OUT
 #define DEBUG(x) DEBUG_OUT.println(x)
@@ -66,7 +66,7 @@ uint32_t maxFlushInterval = 10000;
 uint8_t holdingBuffer[HOLDING_BUFFER_SIZE];
 uint8_t holdingSize = 0;
 
-boolean flushOnNextRaw = false;
+//boolean flushOnNextRaw = false;
 
 
 void setup() {
@@ -206,24 +206,28 @@ void listenToRadio() {
 		uint8_t len = sizeof(buf);
 
 		if (radio.recv(buf, &len)) {
-			processRadioBuffer(buf);
+			processRadioBuffer(buf, len);
 		}
 	}
 
 }
 
 
-void processRadioBuffer(uint8_t* aBuf){
+void processRadioBuffer(uint8_t* aBuf, uint8_t aLen){
 
 	static boolean receiving = false;
 	static char commandBuffer[100];
 	static int index;
 
-	flushOnNextRaw = true;
+//	flushOnNextRaw = true;
+	uint8_t len = aLen;
+	if (len > MAX_MESSAGE_SIZE_RH) {
+		len = MAX_MESSAGE_SIZE_RH;
+	}
 
 	// radio.racv doesn't put any null terminator, so we can't use
 	// string functions, have to scroll through and pick stuff out.
-	for(int i=0; i<MAX_MESSAGE_SIZE_RH; i++){
+	for(int i=0; i<len; i++){
 		char c = aBuf[i];
 
 		if (c == START_OF_PACKET) {
@@ -295,10 +299,11 @@ void handleRawSerial(char *p) {
 	}
 		addToHolding((uint8_t*) p, numBytes);
 
-	if(flushOnNextRaw){
-		flushOnNextRaw = false;
-		flush();
-	}
+//	if(flushOnNextRaw){
+//		flushOnNextRaw = false;
+//		flush();
+//	}
+	flush();
 }
 
 void handleSerialCommand(char *aCommand) {
