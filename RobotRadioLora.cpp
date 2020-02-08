@@ -259,6 +259,9 @@ void processRadioBuffer(uint8_t* aBuf, uint8_t aLen){
 void handleRadioCommand(char* aCommand){
 	// Right now just ship everything to RMB
 	connectedToBase = true;  //we received a formatted command we must be connected
+	if(aCommand[1] == 'l'){
+		handleConfigString(aCommand);
+	}
 	if (rmbActive) {
 		Serial.print(aCommand);
 	}
@@ -314,9 +317,72 @@ void handleSerialCommand(char *aCommand) {
 	if (strcmp(aCommand, RMB_STARTUP_STRING) == 0) {
 		rmbActive = true;
 	}
-	if (connectedToBase) {
+	else if(aCommand[1] == 'l'){
+		addToHolding(aCommand);
+		flush();
+		handleConfigString(aCommand);
+	}
+	else if (connectedToBase) {
 		addToHolding(aCommand);
 	}
+}
+
+void handleConfigString(char *p) {
+	switch (p[2]) {
+	case 'M': {
+		// set mode 0-3 from setModemConfig
+		uint8_t entry = atoi((const char*) (p + 3));
+		if (entry > 3) {
+			entry = 3;
+		}
+		switch (entry){
+		case 0:
+			radio.setModemConfig(RH_RF95::Bw125Cr45Sf128);
+			break;
+		case 1:
+			radio.setModemConfig(RH_RF95::Bw500Cr45Sf128);
+			break;
+		case 2:
+			radio.setModemConfig(RH_RF95::Bw31_25Cr48Sf512);
+			break;
+		case 3:
+			radio.setModemConfig(RH_RF95::Bw125Cr48Sf4096);
+			break;
+		default:
+			radio.setModemConfig(RH_RF95::Bw125Cr45Sf128);
+			break;
+
+		}
+		break;
+	}
+	case 'B': {
+		// set bandwidth to  option: 7800,10400,15600,20800,31250,41700,62500,125000,250000,500000
+		//  sketchy if below 62500 although I hear 31250 works ok sometimes
+		uint32_t entry = atoi((const char*) (p + 3));
+		radio.setSignalBandwidth(entry);
+		break;
+	}
+	case 'S': {
+			// set mode 0-3 from setModemConfig
+			uint8_t entry = atoi((const char*) (p + 3));
+			if (entry > 3) {
+				entry = 3;
+			}
+			radio.setSpreadingFactor(entry);
+			break;
+		}
+	case 'C': {
+				// set mode 0-3 from setModemConfig
+				uint8_t entry = atoi((const char*) (p + 3));
+				if (entry > 3) {
+					entry = 3;
+				}
+				radio.setCodingRate4(entry);
+				break;
+			}
+	default:
+		break;
+	} // end switch
 }
 
 void heartBeat(){

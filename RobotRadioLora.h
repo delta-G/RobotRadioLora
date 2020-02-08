@@ -47,6 +47,8 @@ void handleSerialCommand(char*);
 void handleRawSerial(char*);
 void handleRawRadio(uint8_t*);
 
+void handleConfigString(char*);
+
 void addToHolding(uint8_t*, uint8_t);
 void addToHolding(char*);
 void flush();
