@@ -260,7 +260,9 @@ void handleRadioCommand(char* aCommand){
 	// Right now just ship everything to RMB
 	connectedToBase = true;  //we received a formatted command we must be connected
 	if(aCommand[1] == 'l'){
+		delay(250);
 		handleConfigString(aCommand);
+		delay(500);
 	}
 	if (rmbActive) {
 		Serial.print(aCommand);
