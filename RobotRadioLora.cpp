@@ -32,16 +32,6 @@ RobotRadioLora  --  runs on Arduino Nano and handles communication over LoRa
 #endif
 
 
-#define HOLDING_BUFFER_SIZE 248
-
-#define RFM95_CS 10
-#define RFM95_RST 9
-#define RFM95_INT 2
-
-#define RF95_FREQ 915.0
-
-#define MAX_MESSAGE_SIZE_RH RH_RF95_MAX_MESSAGE_LEN
-
 const uint8_t heartBeatPin = 6;
 unsigned int heartBeatDelay = 100;
 
@@ -59,14 +49,6 @@ uint32_t lastCommandTime;
 uint32_t commandTimeout = 1000000;
 boolean blackoutReported = false;
 
-uint32_t lastFlushTime;
-uint32_t maxFlushInterval = 10000;
-
-
-uint8_t holdingBuffer[HOLDING_BUFFER_SIZE];
-uint8_t holdingSize = 0;
-
-//boolean flushOnNextRaw = false;
 
 
 void setup() {
@@ -153,12 +135,6 @@ void loop()
 				heartBeatDelay = 200;
 			}
 		}
-		if (holdingSize == 0){
-			lastFlushTime = millis();  // don't start timer if we don't have anything to send.
-		}
-		if (millis() - lastFlushTime >= maxFlushInterval){
-			flush();
-		}
 		break;
 	default:
 		//freak out , we shouldn't be here!
@@ -167,94 +143,14 @@ void loop()
 
 	listenToRadio(); // handle the radio
 	parser.run();   // listen to serial
+	handleOutput();
 	heartBeat();   // beat the light
 }
 
 
-void addToHolding(uint8_t* p, uint8_t aSize){
-	if(HOLDING_BUFFER_SIZE - holdingSize < aSize){
-		//  Not enough room so clear the buffer now
-		flush();
-	}
-	memcpy(holdingBuffer + holdingSize, p, aSize);
-	holdingSize += aSize;
-}
-
-void addToHolding(char* p){
-	addToHolding((uint8_t*)p, strlen(p));
-}
 
 
-void sendToRadio(char* p){
-	sendToRadio((uint8_t*)p, strlen(p));
-}
 
-void sendToRadio(uint8_t* p, uint8_t aSize){
-	radio.send(p, aSize);
-	radio.waitPacketSent();
-}
-
-void flush(){
-	sendToRadio(holdingBuffer, holdingSize);
-	holdingSize = 0;
-	lastFlushTime = millis();
-}
-
-void listenToRadio() {
-	if (radio.available()) {
-
-		uint8_t buf[MAX_MESSAGE_SIZE_RH];
-		uint8_t len = sizeof(buf);
-
-		if (radio.recv(buf, &len)) {
-			processRadioBuffer(buf, len);
-		}
-	}
-
-}
-
-
-void processRadioBuffer(uint8_t* aBuf, uint8_t aLen){
-
-	static boolean receiving = false;
-	static char commandBuffer[100];
-	static int index;
-
-//	flushOnNextRaw = true;
-	uint8_t len = aLen;
-	if (len > MAX_MESSAGE_SIZE_RH) {
-		len = MAX_MESSAGE_SIZE_RH;
-	}
-
-	// radio.racv doesn't put any null terminator, so we can't use
-	// string functions, have to scroll through and pick stuff out.
-	for(int i=0; i<len; i++){
-		char c = aBuf[i];
-
-		if (c == START_OF_PACKET) {
-			if ((aBuf[i + 1] >= 0x11) && (aBuf[i + 1] <= 0x14)) {
-				handleRawRadio(&aBuf[i]);
-				i += (aBuf[i + 2] - 1);
-				continue;
-			}
-
-			receiving = true;
-			index = 0;
-			commandBuffer[0] = 0;
-		}
-		if (receiving) {
-			commandBuffer[index] = c;
-			commandBuffer[++index] = 0;
-			if(index >= 100){
-				index--;
-			}
-			if(c == END_OF_PACKET){
-				receiving = false;
-				handleRadioCommand(commandBuffer);
-			}
-		}
-	}
-}
 
 void handleRadioCommand(char* aCommand){
 	// Right now just ship everything to RMB
@@ -329,63 +225,7 @@ void handleSerialCommand(char *aCommand) {
 	}
 }
 
-void handleConfigString(char *p) {
-	switch (p[2]) {
-	case 'M': {
-		// set mode 0-3 from setModemConfig
-		uint8_t entry = atoi((const char*) (p + 3));
-		if (entry > 3) {
-			entry = 3;
-		}
-		switch (entry){
-		case 0:
-			radio.setModemConfig(RH_RF95::Bw125Cr45Sf128);
-			break;
-		case 1:
-			radio.setModemConfig(RH_RF95::Bw500Cr45Sf128);
-			break;
-		case 2:
-			radio.setModemConfig(RH_RF95::Bw31_25Cr48Sf512);
-			break;
-		case 3:
-			radio.setModemConfig(RH_RF95::Bw125Cr48Sf4096);
-			break;
-		default:
-			radio.setModemConfig(RH_RF95::Bw125Cr45Sf128);
-			break;
 
-		}
-		break;
-	}
-	case 'B': {
-		// set bandwidth to  option: 7800,10400,15600,20800,31250,41700,62500,125000,250000,500000
-		//  sketchy if below 62500 although I hear 31250 works ok sometimes
-		uint32_t entry = atoi((const char*) (p + 3));
-		radio.setSignalBandwidth(entry);
-		break;
-	}
-	case 'S': {
-			// set mode 0-3 from setModemConfig
-			uint8_t entry = atoi((const char*) (p + 3));
-			if (entry > 3) {
-				entry = 3;
-			}
-			radio.setSpreadingFactor(entry);
-			break;
-		}
-	case 'C': {
-				// set mode 0-3 from setModemConfig
-				uint8_t entry = atoi((const char*) (p + 3));
-				if (entry > 3) {
-					entry = 3;
-				}
-				radio.setCodingRate4(entry);
-				break;
-			}
-	default:
-		break;
-	} // end switch
-}
 
 void heartBeat(){
 
