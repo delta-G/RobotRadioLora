@@ -159,8 +159,13 @@ void handleRadioCommand(char* aCommand){
 		delay(250);
 		handleConfigString(aCommand);
 		delay(500);
+	} else if(aCommand[1] == 'P'){
+		int rvl = atoi((const char*)(aCommand + 2));
+		char resp[10];
+		snprintf(resp, 10, "<p%i>", rvl);
+		sendToRadio(resp);
 	}
-	if (rmbActive) {
+	else if (rmbActive) {
 		Serial.print(aCommand);
 	}
 	lastCommandTime = millis();
