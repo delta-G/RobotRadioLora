@@ -155,7 +155,9 @@ void loop()
 void handleRadioCommand(char* aCommand){
 	// Right now just ship everything to RMB
 	connectedToBase = true;  //we received a formatted command we must be connected
-	if(aCommand[1] == 'l'){
+	if(strcmp(aCommand, "<LGO>")){
+		rmbActive = true;
+	} else if(aCommand[1] == 'l'){
 		delay(250);
 		handleConfigString(aCommand);
 		delay(500);
@@ -164,8 +166,7 @@ void handleRadioCommand(char* aCommand){
 		char resp[10];
 		snprintf(resp, 10, "<p%i>", rvl);
 		sendToRadio(resp);
-	}
-	else if (rmbActive) {
+	} else if (rmbActive) {
 		Serial.print(aCommand);
 	}
 	lastCommandTime = millis();
