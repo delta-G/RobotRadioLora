@@ -37,15 +37,14 @@ RobotRadioLora  --  runs on Arduino Nano and handles communication over LoRa
 
 void setup();
 void loop();
+void heartbeat();
 
 
 void handleRadioCommand(char*);
-
 void handleSerialCommand(char*);
-
 void handleRawSerial(char*);
 void handleRawRadio(uint8_t*);
 
-void heartBeat();
+
 
 #endif /* _RH_02_H_ */

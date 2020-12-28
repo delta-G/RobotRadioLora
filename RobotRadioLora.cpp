@@ -23,17 +23,18 @@ RobotRadioLora  --  runs on Arduino Nano and handles communication over LoRa
 
 #include "RobotRadioLora.h"
 
-//#define DEBUG_OUT Serial
+//#define MYDEBUG_OUT Serial
 
-#ifdef DEBUG_OUT
-#define DEBUG(x) DEBUG_OUT.println(x)
+#ifdef MYDEBUG_OUT
+#define MYDEBUG(x) MYDEBUG_OUT.println(x)
 #else
-#define DEBUG(x)
+#define MYDEBUG(x)
 #endif
 
+uint8_t heartPins[3] = {3,5,6};
+uint16_t heartDelay[3] = {0,0,0};
+uint32_t lastHeart[3] = {0,0,0};
 
-const uint8_t heartBeatPin = 6;
-unsigned int heartBeatDelay = 100;
 
 boolean rmbActive = false;
 boolean connectedToBase = false;
@@ -52,58 +53,41 @@ boolean blackoutReported = false;
 
 
 void setup() {
-	pinMode(RFM95_RST, OUTPUT);
-	digitalWrite(RFM95_RST, HIGH);
+	initRadio();
 
-	pinMode(heartBeatPin, OUTPUT);
+	for (int i=0; i<3; i++){
+		pinMode(heartPins[i], OUTPUT);
+		digitalWrite(heartPins[i], LOW);
+	}
 
 	//  beat the light a few times to let us know the program came on.
 	for (int i = 0; i < 3; i++) {
-		digitalWrite(heartBeatPin, HIGH);
+		digitalWrite(heartPins[i], HIGH);
 		delay(50);
-		digitalWrite(heartBeatPin, LOW);
+		digitalWrite(heartPins[i], LOW);
 		delay(50);
 	}
 
 	Serial.begin(ROBOT_COM_BAUD);
 	delay(100);
 
-	// manual reset
-	digitalWrite(RFM95_RST, LOW);
-	delay(10);
-	digitalWrite(RFM95_RST, HIGH);
-	delay(10);
+	digitalWrite(6, HIGH);
 
-	while (!radio.init()) {
-		DEBUG("LoRa radio init failed");
-		while (1)
-			;
-	}
-	DEBUG("LoRa radio init OK!");
-	digitalWrite(heartBeatPin, HIGH);
+	resetRadio();
 
-	// Defaults after init are 434.0MHz, modulation GFSK_Rb250Fd250, +13dbM
-	if (!radio.setFrequency(RF95_FREQ)) {
-		DEBUG("setFrequency failed");
-		while (1)
-			;
-	}
-			digitalWrite(heartBeatPin, LOW);
-	DEBUG("Set Freq to: ");
-	DEBUG(RF95_FREQ);
-
-	radio.setTxPower(23, false);
+	digitalWrite(6, LOW);
 
 	//  beat the light a few times to let us know the radio came on.
 	for (int i = 0; i < 3; i++) {
-		digitalWrite(heartBeatPin, HIGH);
+		digitalWrite(heartPins[i], HIGH);
 		delay(50);
-		digitalWrite(heartBeatPin, LOW);
+		digitalWrite(heartPins[i], LOW);
 		delay(50);
 	}
 
 
 	parser.setRawCallback(handleRawSerial);
+	heartDelay[0] = 500;
 
 }
 
@@ -115,13 +99,15 @@ void loop()
 		if(rmbActive){
 			Serial.print(COM_START_STRING);
 			bootState = WAITING_ON_BASE;
-			heartBeatDelay = 500;
+			heartDelay[0] = 0;
+			heartDelay[1] = 500;
 		}
 		break;
 	case WAITING_ON_BASE:
 		if(connectedToBase){
 			Serial.print(COM_CONNECT_STRING);
-			heartBeatDelay = 2000;
+			heartDelay[1] = 0;
+			heartDelay[2] = 2000;
 			lastCommandTime = millis();  // reset the command timer
 			bootState = RUNNING;
 		}
@@ -132,19 +118,19 @@ void loop()
 			if (!blackoutReported) {
 				Serial.print("<LOST_COM>");
 				blackoutReported = true;
-				heartBeatDelay = 200;
+				heartDelay[0] = 200;
 			}
 		}
 		break;
 	default:
 		//freak out , we shouldn't be here!
-		heartBeatDelay = 50;
+		heartDelay[0] = 50;
 	}
 
 	listenToRadio(); // handle the radio
 	parser.run();   // listen to serial
 	handleOutput();
-	heartBeat();   // beat the light
+	heartbeat();   // beat the light
 }
 
 
@@ -173,7 +159,7 @@ void handleRadioCommand(char* aCommand){
 	//  if we had lost contact
 	if(blackoutReported){
 		blackoutReported = false;
-		heartBeatDelay = 2000;
+		heartDelay[0] = 2000;
 	}
 }
 
@@ -191,7 +177,7 @@ void handleRawRadio(uint8_t *p) {
 		//  if we had lost contact
 		if (blackoutReported) {
 			blackoutReported = false;
-			heartBeatDelay = 2000;
+			heartDelay[0] = 2000;
 		}
 	}
 }
@@ -232,14 +218,17 @@ void handleSerialCommand(char *aCommand) {
 }
 
 
-
-void heartBeat(){
-
-	static unsigned long pm = millis();
-	unsigned long cm = millis();
-
-	if(cm - pm >= heartBeatDelay){
-		digitalWrite(heartBeatPin, !digitalRead(heartBeatPin));
-		pm = cm;
+void heartbeat(){
+	uint32_t cur = millis();
+	for(uint8_t i=0; i<3; i++){
+		if(heartDelay[i] == 0){
+			digitalWrite(heartPins[i], LOW);
+		} else if(heartDelay[i] == 1){
+			digitalWrite(heartPins[i], HIGH);
+		} else if(cur - lastHeart[i] >= heartDelay[i]){
+			digitalWrite(heartPins[i], !digitalRead(heartPins[i]));
+			lastHeart[i] = cur;
+		}
 	}
 }
+
