@@ -38,7 +38,7 @@ RobotRadioLora  --  runs on Arduino Nano and handles communication over LoRa
 void setup();
 void loop();
 void heartbeat();
-
+void setHeartDelay(uint16_t aRed, uint16_t aGreen, uint16_t aBlue);
 
 void handleRadioCommand(char*);
 void handleSerialCommand(char*);

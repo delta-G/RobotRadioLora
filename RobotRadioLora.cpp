@@ -47,7 +47,7 @@ StreamParser parser(&Serial, START_OF_PACKET, END_OF_PACKET, handleSerialCommand
 
 
 uint32_t lastCommandTime;
-uint32_t commandTimeout = 1000000;
+uint32_t commandTimeout = 20000;
 boolean blackoutReported = false;
 
 
@@ -87,7 +87,7 @@ void setup() {
 
 
 	parser.setRawCallback(handleRawSerial);
-	heartDelay[0] = 500;
+	setHeartDelay(500,0,0);
 
 }
 
@@ -99,15 +99,13 @@ void loop()
 		if(rmbActive){
 			Serial.print(COM_START_STRING);
 			bootState = WAITING_ON_BASE;
-			heartDelay[0] = 0;
-			heartDelay[1] = 500;
+			setHeartDelay(0,500,0);
 		}
 		break;
 	case WAITING_ON_BASE:
 		if(connectedToBase){
 			Serial.print(COM_CONNECT_STRING);
-			heartDelay[1] = 0;
-			heartDelay[2] = 2000;
+			setHeartDelay(0,0,2000);
 			lastCommandTime = millis();  // reset the command timer
 			bootState = RUNNING;
 		}
@@ -118,13 +116,13 @@ void loop()
 			if (!blackoutReported) {
 				Serial.print("<LOST_COM>");
 				blackoutReported = true;
-				heartDelay[0] = 200;
+				setHeartDelay(200,0,0);
 			}
 		}
 		break;
 	default:
 		//freak out , we shouldn't be here!
-		heartDelay[0] = 50;
+		setHeartDelay(50, 0, 0);
 	}
 
 	listenToRadio(); // handle the radio
@@ -133,7 +131,11 @@ void loop()
 	heartbeat();   // beat the light
 }
 
-
+void setHeartDelay(uint16_t aRed, uint16_t aGreen, uint16_t aBlue){
+	heartDelay[0] = aRed;
+	heartDelay[1] = aGreen;
+	heartDelay[2] = aBlue;
+}
 
 
 
@@ -159,7 +161,7 @@ void handleRadioCommand(char* aCommand){
 	//  if we had lost contact
 	if(blackoutReported){
 		blackoutReported = false;
-		heartDelay[0] = 2000;
+		setHeartDelay(0,0,2000);
 	}
 }
 
@@ -177,7 +179,7 @@ void handleRawRadio(uint8_t *p) {
 		//  if we had lost contact
 		if (blackoutReported) {
 			blackoutReported = false;
-			heartDelay[0] = 2000;
+			setHeartDelay(0,0,2000);
 		}
 	}
 }
