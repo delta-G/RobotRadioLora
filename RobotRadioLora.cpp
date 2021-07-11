@@ -97,14 +97,14 @@ void loop()
 	case BOOTUP:
 	case WAITING_ON_RMB:
 		if(rmbActive){
-			Serial.print(COM_START_STRING);
+			Serial.print(F(COM_START_STRING));
 			bootState = WAITING_ON_BASE;
 			setHeartDelay(0,500,0);
 		}
 		break;
 	case WAITING_ON_BASE:
 		if(connectedToBase){
-			Serial.print(COM_CONNECT_STRING);
+			Serial.print(F(COM_CONNECT_STRING));
 			setHeartDelay(0,0,2000);
 			lastCommandTime = millis();  // reset the command timer
 			bootState = RUNNING;
@@ -114,7 +114,7 @@ void loop()
 		// if we lose contact, report to main brain and flashy light
 		if (millis() - lastCommandTime >= commandTimeout) {
 			if (!blackoutReported) {
-				Serial.print("<LOST_COM>");
+				Serial.print(F("<LOST_COM>"));
 				blackoutReported = true;
 				setHeartDelay(200,0,0);
 			}
@@ -168,7 +168,7 @@ void handleRadioCommand(char* aCommand){
 void handleRawRadio(uint8_t *p) {
 	uint8_t numBytes = p[2];
 	//  If properly formatted message
-	if ((numBytes < 100) && (p[numBytes - 1] == '>')) {
+	if ((numBytes < RADIO_BUFFER_SIZE) && (p[numBytes - 1] == '>')) {
 		connectedToBase = true; //we received a formatted raw message we must be connected
 		if (rmbActive) {
 			for (uint8_t i = 0; i < numBytes; i++) {
@@ -206,8 +206,15 @@ void handleSerialCommand(char *aCommand) {
 		flush();
 		return;
 	}
-	if (strcmp(aCommand, RMB_STARTUP_STRING) == 0) {
+	else if (strcmp(aCommand, RMB_STARTUP_STRING) == 0) {
 		rmbActive = true;
+	}
+	else if (strstr(aCommand, "<RRMMBB  HHBBooRR>") != NULL) {
+		digitalWrite(heartPins[0], HIGH);
+		digitalWrite(heartPins[1], HIGH);
+		digitalWrite(heartPins[2], HIGH);
+		// WHITE light and lock up, we found it...
+		while(1);
 	}
 	else if(aCommand[1] == 'l'){
 		addToHolding(aCommand);
