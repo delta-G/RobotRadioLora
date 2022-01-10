@@ -208,20 +208,19 @@ void handleSerialCommand(char *aCommand) {
 	}
 	else if (strcmp(aCommand, RMB_STARTUP_STRING) == 0) {
 		rmbActive = true;
-	}
-	else if (strstr(aCommand, "<RRMMBB  HHBBooRR>") != NULL) {
-		digitalWrite(heartPins[0], HIGH);
-		digitalWrite(heartPins[1], HIGH);
-		digitalWrite(heartPins[2], HIGH);
-		// WHITE light and lock up, we found it...
-		while(1);
-	}
-	else if(aCommand[1] == 'l'){
+//	}
+//	else if (strstr(aCommand, "<RRMMBB  HHBBooRR>") != NULL) {
+//		digitalWrite(heartPins[0], HIGH);
+//		digitalWrite(heartPins[1], HIGH);
+//		digitalWrite(heartPins[2], HIGH);
+//		// WHITE light and lock up, we found it...
+//		while (1)
+//			;
+	} else if (aCommand[1] == 'l') {
 		addToHolding(aCommand);
 		flush();
 		handleConfigString(aCommand);
-	}
-	else if (connectedToBase) {
+	} else if (connectedToBase) {
 		addToHolding(aCommand);
 	}
 }
